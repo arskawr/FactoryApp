@@ -7,6 +7,7 @@ import java.net.*;
 import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class NetworkClient {
     private Socket socket;
@@ -30,7 +31,7 @@ public class NetworkClient {
         try {
             System.out.println("Попытка подключения к " + host + ":" + port);
             socket = new Socket(host, port);
-            socket.setSoTimeout(5000); // 5 секунд таймаут
+            socket.setSoTimeout(5000);
             
             output = new ObjectOutputStream(socket.getOutputStream());
             output.flush();
@@ -53,94 +54,58 @@ public class NetworkClient {
         }
     }
     
-    public User login(String username, String password, String role) {
-    if (!connected) {
-        System.err.println("Не подключен к серверу, невозможно отправить запрос");
-        return null;
-    }
-    
-    try {
-        String authData = username + ":" + password + ":" + role;
-        Protocol.Message message = new Protocol.Message(Protocol.MessageType.LOGIN_REQUEST, authData);
-        
-        System.out.println("Отправка запроса аутентификации...");
-        output.writeObject(message);
-        output.flush();
-        
-        socket.setSoTimeout(10000); // 10 секунд на ответ
-        Protocol.Message response = (Protocol.Message) input.readObject();
-        socket.setSoTimeout(0);
-        
-        // ИСПРАВЬТЕ ЭТУ ПРОВЕРКУ:
-        if (response.isSuccess() && response.getData() instanceof User) {
-            this.currentUser = (User) response.getData();
-            System.out.println("Успешный вход как " + currentUser.getUsername() + " (" + currentUser.getRole() + ")");
-            return currentUser;
-        } else {
-            System.err.println("Ошибка аутентификации: " + response.getErrorMessage());
+    public User login(String username, String password) {
+        if (!connected) {
+            System.err.println("Не подключен к серверу, невозможно отправить запрос");
             return null;
         }
         
-    } catch (SocketTimeoutException e) {
-        System.err.println("Таймаут ожидания ответа от сервера");
-        disconnect();
-        return null;
-    } catch (IOException | ClassNotFoundException e) {
-        System.err.println("Ошибка при отправке запроса: " + e.getMessage());
-        disconnect();
-        return null;
-    }
-}
-    
-public boolean deleteProduct(int productId) {
-    Protocol.Message response = sendRequest(Protocol.MessageType.DELETE_PRODUCT, productId);
-    return response.isSuccess();
-}
-
-public boolean deleteRawMaterial(int materialId) {
-    Protocol.Message response = sendRequest(Protocol.MessageType.DELETE_RAW_MATERIAL, materialId);
-    return response.isSuccess();
-}
-
-public boolean updateOrderStatus(Map<String, Object> statusData) {
-    Protocol.Message response = sendRequest(Protocol.MessageType.UPDATE_ORDER_STATUS, statusData);
-    return response.isSuccess();
-}
-
-public boolean deleteOrder(int orderId) {
-    Protocol.Message response = sendRequest(Protocol.MessageType.DELETE_ORDER, orderId);
-    return response.isSuccess();
-}
-public boolean addRawMaterial(RawMaterial material) {
-    Protocol.Message response = sendRequest(Protocol.MessageType.ADD_RAW_MATERIAL, material);
-    return response.isSuccess();
-}
-
-public boolean updateRawMaterial(RawMaterial material) {
-    Protocol.Message response = sendRequest(Protocol.MessageType.UPDATE_RAW_MATERIAL, material);
-    return response.isSuccess();
-}
-
-
-
-    // Добавляем метод, который вызывается в ClientGUI
-    public boolean sendLoginRequest(String username, String password, String role) {
-        User user = login(username, password, role);
-        return user != null;
-    }
-    
-    public void logout() {
-        if (connected && currentUser != null) {
-            try {
-                Protocol.Message message = new Protocol.Message(Protocol.MessageType.LOGOUT, "logout");
-                output.writeObject(message);
-                output.flush();
-            } catch (IOException e) {
-                System.err.println("Ошибка при выходе: " + e.getMessage());
+        try {
+            String authData = username + ":" + password;
+            Protocol.Message message = new Protocol.Message(Protocol.MessageType.LOGIN_REQUEST, authData);
+            
+            System.out.println("Отправка запроса аутентификации...");
+            output.writeObject(message);
+            output.flush();
+            
+            socket.setSoTimeout(10000);
+            Protocol.Message response = (Protocol.Message) input.readObject();
+            socket.setSoTimeout(0);
+            
+            if (response.isSuccess() && response.getData() instanceof User) {
+                this.currentUser = (User) response.getData();
+                System.out.println("Успешный вход как " + currentUser.getUsername());
+                return currentUser;
+            } else {
+                System.err.println("Ошибка аутентификации: " + response.getErrorMessage());
+                return null;
             }
+            
+        } catch (SocketTimeoutException e) {
+            System.err.println("Таймаут ожидания ответа от сервера");
+            disconnect();
+            return null;
+        } catch (IOException | ClassNotFoundException e) {
+            System.err.println("Ошибка при отправке запроса: " + e.getMessage());
+            disconnect();
+            return null;
         }
-        currentUser = null;
-        disconnect();
+    }
+    
+        public boolean register(String username, String password, String fullName,
+                            String email, String phone, String address) {
+        if (!connected) return false;
+
+        Map<String, String> data = new HashMap<>();
+        data.put("username", username);
+        data.put("password", password);
+        data.put("fullName", fullName);
+        data.put("email", email);
+        data.put("phone", phone);
+        data.put("address", address);
+
+        Protocol.Message response = sendRequest(Protocol.MessageType.REGISTER_REQUEST, data);
+        return response.isSuccess();
     }
     
     public Protocol.Message sendRequest(Protocol.MessageType type, Object data) {
@@ -154,7 +119,7 @@ public boolean updateRawMaterial(RawMaterial material) {
             output.writeObject(message);
             output.flush();
             
-            socket.setSoTimeout(30000); // 30 секунд таймаут
+            socket.setSoTimeout(30000);
             Protocol.Message response = (Protocol.Message) input.readObject();
             socket.setSoTimeout(0);
             
@@ -231,13 +196,38 @@ public boolean updateRawMaterial(RawMaterial material) {
         return response.isSuccess();
     }
     
+    public boolean deleteProduct(int productId) {
+        Protocol.Message response = sendRequest(Protocol.MessageType.DELETE_PRODUCT, productId);
+        return response.isSuccess();
+    }
+    
     public boolean addOrder(Order order) {
         Protocol.Message response = sendRequest(Protocol.MessageType.ADD_ORDER, order);
         return response.isSuccess();
     }
     
-    public boolean executeCommand(String command) {
-        Protocol.Message response = sendRequest(Protocol.MessageType.EXECUTE_COMMAND, command);
+    public boolean updateOrderStatus(Map<String, Object> statusData) {
+        Protocol.Message response = sendRequest(Protocol.MessageType.UPDATE_ORDER_STATUS, statusData);
+        return response.isSuccess();
+    }
+    
+    public boolean deleteOrder(int orderId) {
+        Protocol.Message response = sendRequest(Protocol.MessageType.DELETE_ORDER, orderId);
+        return response.isSuccess();
+    }
+    
+    public boolean addRawMaterial(RawMaterial material) {
+        Protocol.Message response = sendRequest(Protocol.MessageType.ADD_RAW_MATERIAL, material);
+        return response.isSuccess();
+    }
+    
+    public boolean updateRawMaterial(RawMaterial material) {
+        Protocol.Message response = sendRequest(Protocol.MessageType.UPDATE_RAW_MATERIAL, material);
+        return response.isSuccess();
+    }
+    
+    public boolean deleteRawMaterial(int materialId) {
+        Protocol.Message response = sendRequest(Protocol.MessageType.DELETE_RAW_MATERIAL, materialId);
         return response.isSuccess();
     }
     
@@ -264,4 +254,18 @@ public boolean updateRawMaterial(RawMaterial material) {
     public void setCurrentUser(User user) {
         this.currentUser = user;
     }
+    public void logout() {
+    if (connected && currentUser != null) {
+        try {
+            Protocol.Message message = new Protocol.Message(Protocol.MessageType.LOGOUT, "logout");
+            output.writeObject(message);
+            output.flush();
+        } catch (IOException e) {
+            System.err.println("Ошибка при выходе: " + e.getMessage());
+        }
+    }
+    currentUser = null;
+    disconnect();
+}
+
 }

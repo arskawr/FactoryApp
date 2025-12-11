@@ -10,9 +10,10 @@ if not exist lib\mysql-connector-java-8.0.33.jar (
     exit /b 1
 )
 
-echo Запуск сервера на порту 5555...
-java -cp "bin;lib\mysql-connector-java-8.0.33.jar;lib\h2-2.1.214.jar" server.MainServer
+if not exist lib\h2-2.1.214.jar (
+    echo Внимание: H2 драйвер не найден, но MySQL доступен.
+)
 
-echo.
-echo Сервер остановлен.
+echo Запуск сервера на порту 5555...
+java --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED -cp "bin;lib\mysql-connector-java-8.0.33.jar;lib\h2-2.1.214.jar" server.MainServer
 pause

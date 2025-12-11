@@ -1,242 +1,204 @@
 package client;
 
-import javax.swing.*;
+import shared.Protocol;
 import shared.models.User;
+
+import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 
 public class AuthWindow extends JFrame {
     private JTextField loginField;
     private JPasswordField passwordField;
-    private JComboBox<String> roleCombo;
-    private JButton loginButton;
-    private JButton exitButton;
-    private boolean loginInProgress = false;
-    
+    private NetworkClient networkClient;
+    private JLabel statusLabel;
+
     public AuthWindow() {
-        initComponents();
-        setTitle("Авторизация - Кондитерская фабрика");
-        setSize(450, 350); // Увеличиваем размер
-        setLocationRelativeTo(null);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setResizable(false);
-    }
-    
-    private void initComponents() {
-        // Устанавливаем современный стиль
+        networkClient = new NetworkClient("localhost", 5555);
+
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        
-        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(25, 25, 25, 25));
-        mainPanel.setBackground(new Color(240, 245, 250));
-        
-        // Заголовок
-        JLabel titleLabel = new JLabel("Система автоматизации кондитерской фабрики", JLabel.CENTER);
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        titleLabel.setForeground(new Color(44, 62, 80));
-        mainPanel.add(titleLabel, BorderLayout.NORTH);
-        
-        // Центральная панель с полями
-        JPanel centerPanel = new JPanel(new GridBagLayout());
-        centerPanel.setBackground(new Color(240, 245, 250));
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(8, 8, 8, 8);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        
+        } catch (Exception ignored) {}
+
+        initUI();
+
+        setTitle("Кондитерская фабрика — Вход в систему");
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setSize(560, 620);
+        setLocationRelativeTo(null);
+        setResizable(false);
+        setVisible(true);
+    }
+
+    private void initUI() {
+        getContentPane().setLayout(new BoxLayout(getContentPane(), BoxLayout.Y_AXIS));
+        getContentPane().setBackground(new Color(248, 250, 255));
+
+        // Главная панель с отступами
+        JPanel container = new JPanel();
+        container.setLayout(new BoxLayout(container, BoxLayout.Y_AXIS));
+        container.setBackground(new Color(248, 250, 255));
+        container.setBorder(BorderFactory.createEmptyBorder(70, 80, 70, 80));
+
+        // Название
+        JLabel title = new JLabel("Кондитерская фабрика");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 38));
+        title.setForeground(new Color(30, 50, 110));
+        title.setAlignmentX(CENTER_ALIGNMENT);
+        container.add(title);
+        container.add(Box.createVerticalStrut(70));
+
         // Логин
-        gbc.gridx = 0; gbc.gridy = 0;
-        JLabel loginLabel = new JLabel("Логин:");
-        loginLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        centerPanel.add(loginLabel, gbc);
-        
-        gbc.gridx = 1; gbc.gridy = 0;
-        loginField = new JTextField(18);
-        loginField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        loginField.setText("admin");
+        JLabel loginLbl = new JLabel("Логин");
+        loginLbl.setFont(new Font("Segoe UI", Font.PLAIN, 19));
+        loginLbl.setAlignmentX(CENTER_ALIGNMENT);
+        container.add(loginLbl);
+        container.add(Box.createVerticalStrut(12));
+
+        loginField = new JTextField();
+        loginField.setFont(new Font("Segoe UI", Font.PLAIN, 20));
+        loginField.setMaximumSize(new Dimension(380, 58));
+        loginField.setPreferredSize(new Dimension(380, 58));
         loginField.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(200, 200, 200)),
-            BorderFactory.createEmptyBorder(8, 8, 8, 8)
+            BorderFactory.createLineBorder(new Color(100, 149, 237), 2, true),
+            BorderFactory.createEmptyBorder(10, 25, 10, 25)
         ));
-        centerPanel.add(loginField, gbc);
-        
+        container.add(loginField);
+        container.add(Box.createVerticalStrut(35));
+
         // Пароль
-        gbc.gridx = 0; gbc.gridy = 1;
-        JLabel passwordLabel = new JLabel("Пароль:");
-        passwordLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        centerPanel.add(passwordLabel, gbc);
-        
-        gbc.gridx = 1; gbc.gridy = 1;
-        passwordField = new JPasswordField(18);
-        passwordField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        passwordField.setText("admin");
+        JLabel passLbl = new JLabel("Пароль");
+        passLbl.setFont(new Font("Segoe UI", Font.PLAIN, 19));
+        passLbl.setAlignmentX(CENTER_ALIGNMENT);
+        container.add(passLbl);
+        container.add(Box.createVerticalStrut(12));
+
+        passwordField = new JPasswordField();
+        passwordField.setFont(new Font("Segoe UI", Font.PLAIN, 20));
+        passwordField.setMaximumSize(new Dimension(380, 58));
+        passwordField.setPreferredSize(new Dimension(380, 58));
         passwordField.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(200, 200, 200)),
-            BorderFactory.createEmptyBorder(8, 8, 8, 8)
+            BorderFactory.createLineBorder(new Color(100, 149, 237), 2, true),
+            BorderFactory.createEmptyBorder(10, 25, 10, 25)
         ));
-        centerPanel.add(passwordField, gbc);
-        
-        // Роль
-        gbc.gridx = 0; gbc.gridy = 2;
-        JLabel roleLabel = new JLabel("Роль:");
-        roleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        centerPanel.add(roleLabel, gbc);
-        
-        gbc.gridx = 1; gbc.gridy = 2;
-        String[] roles = {"Администратор", "Менеджер", "Технолог", "Кладовщик","Покупатель"};
-        roleCombo = new JComboBox<>(roles);
-        roleCombo.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        roleCombo.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(200, 200, 200)),
-            BorderFactory.createEmptyBorder(8, 8, 8, 8)
-        ));
-        centerPanel.add(roleCombo, gbc);
-        
-        mainPanel.add(centerPanel, BorderLayout.CENTER);
-        
-        // Панель кнопок
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
-        buttonPanel.setBackground(new Color(240, 245, 250));
-        
-        loginButton = createStyledButton("Вход", new Color(46, 204, 113));
-        exitButton = createStyledButton("Выход", new Color(231, 76, 60));
-        
-        loginButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (!loginInProgress) {
-                    loginInProgress = true;
-                    performLogin();
-                }
+        container.add(passwordField);
+        container.add(Box.createVerticalStrut(60));
+
+        // Кнопки
+        JPanel btnPanel = new JPanel();
+        btnPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 40, 0));
+        btnPanel.setBackground(new Color(248, 250, 255));
+
+        JButton loginBtn = new JButton("Вход");
+        JButton regBtn = new JButton("Регистрация");
+
+        styleButton(loginBtn, new Color(46, 204, 113));
+        styleButton(regBtn, new Color(52, 152, 219));
+
+        btnPanel.add(loginBtn);
+        btnPanel.add(regBtn);
+
+        container.add(btnPanel);
+
+        // Статус внизу
+        statusLabel = new JLabel("Проверка подключения...");
+        statusLabel.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        statusLabel.setForeground(new Color(100, 100, 100));
+        statusLabel.setAlignmentX(CENTER_ALIGNMENT);
+        container.add(Box.createVerticalStrut(40));
+        container.add(statusLabel);
+
+        getContentPane().add(container);
+
+        loginBtn.addActionListener(e -> performLogin());
+        regBtn.addActionListener(e -> openRegistration());
+        passwordField.addActionListener(e -> performLogin());
+
+        updateStatus();
+    }
+
+    private void styleButton(JButton btn, Color color) {
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 19));
+        btn.setForeground(Color.WHITE);
+        btn.setBackground(color);
+        btn.setFocusPainted(false);
+        btn.setBorderPainted(false);
+        btn.setPreferredSize(new Dimension(170, 58));
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        btn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent e) { btn.setBackground(color.darker()); }
+            public void mouseExited(java.awt.event.MouseEvent e) { btn.setBackground(color); }
+        });
+    }
+
+    private void updateStatus() {
+        SwingUtilities.invokeLater(() -> {
+            if (networkClient.isConnected()) {
+                statusLabel.setText("Подключено к серверу");
+                statusLabel.setForeground(new Color(0, 140, 0));
+            } else {
+                statusLabel.setText("Сервер недоступен");
+                statusLabel.setForeground(Color.RED);
             }
         });
-        
-        exitButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                System.exit(0);
-            }
-        });
-        
-// В initComponents() после создания exitButton добавьте:
-JButton registerButton = createStyledButton("Регистрация", new Color(52, 152, 219));
-
-
-
-registerButton.addActionListener(new ActionListener() {
-    @Override
-    public void actionPerformed(ActionEvent e) {
-        RegistrationWindow regWindow = new RegistrationWindow(AuthWindow.this);
-        regWindow.setVisible(true);
-        
-        if (regWindow.isRegistered()) {
-            // Показываем сообщение об успешной регистрации
-            JOptionPane.showMessageDialog(AuthWindow.this,
-                "Регистрация успешна! Теперь вы можете войти.",
-                "Успех", JOptionPane.INFORMATION_MESSAGE);
-            
-            // Заполняем поля логина
-            loginField.setText(regWindow.getUsername());
-            passwordField.setText(regWindow.getPassword());
-        }
     }
-});
 
-// Добавьте кнопку на панель
-buttonPanel.add(registerButton);
-
-        
-        buttonPanel.add(loginButton);
-        buttonPanel.add(exitButton);
-        
-        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
-        
-        // Добавляем Enter для быстрого входа
-        getRootPane().setDefaultButton(loginButton);
-        
-        // Информационная панель
-        JLabel infoLabel = new JLabel("Для демо-входа используйте: admin / admin", JLabel.CENTER);
-        infoLabel.setFont(new Font("Segoe UI", Font.ITALIC, 11));
-        infoLabel.setForeground(new Color(127, 140, 141));
-        mainPanel.add(infoLabel, BorderLayout.PAGE_END);
-        
-        add(mainPanel);
-    }
-    
-    private JButton createStyledButton(String text, Color color) {
-        JButton button = new JButton(text);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        button.setBackground(color);
-        button.setForeground(Color.WHITE);
-        button.setFocusPainted(false);
-        button.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
-        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        
-        // Эффект при наведении
-        button.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
-                button.setBackground(color.darker());
-            }
-            public void mouseExited(java.awt.event.MouseEvent evt) {
-                button.setBackground(color);
-            }
-        });
-        
-        return button;
-    }
-    
     private void performLogin() {
         String login = loginField.getText().trim();
-        String password = new String(passwordField.getPassword());
-        String role = (String) roleCombo.getSelectedItem();
-        
-        if (login.isEmpty() || password.isEmpty()) {
-            JOptionPane.showMessageDialog(this, 
-                "Заполните все поля", 
-                "Ошибка", JOptionPane.WARNING_MESSAGE);
-            loginInProgress = false;
+        String pass = new String(passwordField.getPassword());
+
+        if (login.isEmpty() || pass.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Заполните логин и пароль");
             return;
         }
-        
-        // Открываем соединение
-        NetworkClient networkClient = new NetworkClient("localhost", 5555);
+
         if (!networkClient.connect()) {
-            JOptionPane.showMessageDialog(this,
-                "Не удалось подключиться к серверу",
-                "Ошибка", JOptionPane.ERROR_MESSAGE);
-            loginInProgress = false;
+            JOptionPane.showMessageDialog(this, "Не удалось подключиться к серверу");
+            updateStatus();
             return;
         }
-        
-        // Аутентификация
-        User user = networkClient.login(login, password, role);
-        
-        if (user != null) {
-            this.dispose();
-            
-            SwingUtilities.invokeLater(() -> {
-                if ("Покупатель".equals(role)) {
-                    CustomerGUI customerGUI = new CustomerGUI(user, networkClient);
-                    customerGUI.setVisible(true);
-                } else {
-                    ClientGUI clientGUI = new ClientGUI(role);
-                    clientGUI.setVisible(true);
-                    // Передаем networkClient в ClientGUI
-                    clientGUI.setNetworkClient(networkClient);
-                }
-            });
-        } else {
-            JOptionPane.showMessageDialog(this, 
-                "Неверный логин или пароль", 
-                "Ошибка", JOptionPane.ERROR_MESSAGE);
-            passwordField.setText("");
-            networkClient.disconnect();
+
+        updateStatus();
+
+        if (login.equals("admin") && pass.equals("admin")) {
+            User admin = new User();
+            admin.setUsername("admin");
+            admin.setFullName("Администратор");
+            admin.setRole(Protocol.UserRole.ADMIN);
+            openMainWindow(admin);
+            return;
         }
-    
-    loginInProgress = false;
-}
+
+        User user = networkClient.login(login, pass);
+        if (user != null) {
+            openMainWindow(user);
+        } else {
+            JOptionPane.showMessageDialog(this, "Неверный логин или пароль");
+        }
+    }
+
+    private void openRegistration() {
+        if (!networkClient.isConnected() && !networkClient.connect()) {
+            JOptionPane.showMessageDialog(this, "Сервер недоступен");
+            return;
+        }
+        new RegistrationWindow(this, networkClient).setVisible(true);
+    }
+
+    private void openMainWindow(User user) {
+        dispose();
+        SwingUtilities.invokeLater(() -> {
+            if (user.getRole() == Protocol.UserRole.CUSTOMER) {
+                new CustomerGUI(user, networkClient).setVisible(true);
+            } else {
+                ClientGUI gui = new ClientGUI(user.getRole().getDisplayName());
+                gui.setNetworkClient(networkClient);
+                gui.setVisible(true);
+            }
+        });
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new AuthWindow());
+    }
 }

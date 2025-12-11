@@ -1653,16 +1653,20 @@ public void setNetworkClient(NetworkClient networkClient) {
                 
                 if (connected) {
                     // Пробуем разные комбинации для демо
-                    authSuccess = networkClient.sendLoginRequest("admin", "admin", userRole);
-                    if (!authSuccess) {
-                        authSuccess = networkClient.sendLoginRequest("manager", "manager123", userRole);
-                    }
-                    if (!authSuccess) {
-                        authSuccess = networkClient.sendLoginRequest("tech", "tech123", userRole);
-                    }
-                    if (!authSuccess) {
-                        authSuccess = networkClient.sendLoginRequest("warehouse", "warehouse123", userRole);
-                    }
+                   // Найдите метод connectToServer() в ClientGUI.java и замените строки аутентификации (1656-1667):
+if (connected) {
+    // Пробуем разные комбинации для демо
+    authSuccess = networkClient.login("admin", "admin") != null;
+    if (!authSuccess) {
+        authSuccess = networkClient.login("manager", "manager123") != null;
+    }
+    if (!authSuccess) {
+        authSuccess = networkClient.login("tech", "tech123") != null;
+    }
+    if (!authSuccess) {
+        authSuccess = networkClient.login("warehouse", "warehouse123") != null;
+    }
+}
                 }
             } catch (Exception e) {
                 System.err.println("Ошибка в потоке подключения: " + e.getMessage());
